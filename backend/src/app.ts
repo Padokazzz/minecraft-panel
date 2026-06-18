@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Fastify from 'fastify';
+import websocket from '@fastify/websocket';
 
 // Carregar .env da raiz do projeto
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
@@ -31,6 +32,7 @@ fastify.register(helmet, {
 });
 
 fastify.register(cookie);
+fastify.register(websocket);
 
 fastify.register(rateLimit, {
     max: 100,
