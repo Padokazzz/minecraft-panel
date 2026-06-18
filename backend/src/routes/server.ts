@@ -90,7 +90,7 @@ async function getMinecraftStatus(): Promise<ServerStatus> {
   let maxPlayers = 20;
 
   const listResult = await sshService.executeCommand(
-    "sudo -n -u ubuntu screen -S minecraft -p 0 -X stuff \"$(printf '\\r')\" && sleep 1 && sudo -n -u ubuntu screen -S minecraft -p 0 -X stuff \"list\" && sudo -n -u ubuntu screen -S minecraft -p 0 -X stuff \"$(printf '\\r')\" && sleep 1 && sudo -n -u ubuntu screen -S minecraft -p 0 -X hardcopy /tmp/mc_list.txt && sudo -n -u ubuntu cat /tmp/mc_list.txt"
+    "sudo -n -u ubuntu screen -S minecraft -p 0 -X stuff \"list\" && sudo -n -u ubuntu screen -S minecraft -p 0 -X stuff \"$(printf '\\r')\" && sleep 1 && sudo -n -u ubuntu screen -S minecraft -p 0 -X hardcopy /tmp/mc_list.txt && sudo -n -u ubuntu cat /tmp/mc_list.txt"
   );
 
   if (listResult.success) {
@@ -191,7 +191,7 @@ fastify.post('/command', {
     try{
         const { command } = request.body as { command: string };
         
-        const sanitizedCommand = command.replace(/[;&|`$(){}[\]"]/g, '');
+        const sanitizedCommand = command.replace(/[;&|`$(){}[\]"]/g, '').trim();
         
         if (!sanitizedCommand) {
             return reply.status(400).send({
