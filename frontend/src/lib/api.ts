@@ -72,6 +72,13 @@ class ApiClient {
     async getLogs(lines: number = 100): Promise<string[]> {
         return this.request<{ logs: string[] }>(`/api/server/logs?lines=${lines}`).then(response => response.logs);
     }
+
+    async updateBedrock(updateUrl: string): Promise<CommandResult> {
+        return this.request<CommandResult>('/api/server/update', {
+            method: 'POST',
+            body: JSON.stringify({ updateUrl }),
+        });
+    }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
