@@ -5,6 +5,33 @@ import { sshService } from '@/services/sshService';
 import { logger } from '@/utils/logger';
 import { ServerStatus, Player, CommandResult, JWTPayload } from '@/types';
 
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+function getBedrockManagerPath(): string {
+  return process.env.BEDROCK_MANAGER_PATH || '/home/ubuntu/bedrock_manager.sh';
+}
+
+function getBedrockManagerBashPath(): string {
+  return process.env.BEDROCK_MANAGER_BASH_PATH || '/usr/bin/bash';
+}
+
+function validateBedrockUpdateUrl(updateUrl: string): string {
+  const trimmedUrl = updateUrl.trim();
+  const parsedUrl = new URL(trimmedUrl);
+
+  if (parsedUrl.protocol !== 'https:') {
+    throw new Error('A URL precisa usar HTTPS');
+  }
+
+  if (!parsedUrl.pathname.toLowerCase().endsWith('.zip')) {
+    throw new Error('A URL precisa apontar para um arquivo .zip');
+  }
+
+  return parsedUrl.toString();
+}
+
 function parsePlayerNamesFromLogs(output: string): string[] {
   const activePlayers = new Set<string>();
   const lines = output.replace(/\r/g, '\n').split('\n');
@@ -218,6 +245,48 @@ fastify.post('/command', {
 
     }
 )
+
+fastify.post('/update', {
+    preHandler: authenticateToken
+}, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const { updateUrl } = request.body as { updateUrl?: string };
+
+        if (!updateUrl) {
+            return reply.status(400).send({
+                success: false,
+                output: '',
+                error: 'Link de atualização não informado',
+            });
+        }
+
+        const validatedUrl = validateBedrockUpdateUrl(updateUrl);
+        const managerPath = getBedrockManagerPath();
+        const bashPath = getBedrockManagerBashPath();
+        const result = await sshService.executeCommand(
+            `sudo -n -u ubuntu ${shellQuote(bashPath)} ${shellQuote(managerPath)} update ${shellQuote(validatedUrl)}`
+        );
+        const failureMessage = result.error || result.output || 'Falha ao iniciar atualização';
+
+        const response: CommandResult = {
+            success: result.success,
+            output: result.output || (result.success ? 'Atualização iniciada com sucesso' : failureMessage),
+            error: result.success ? undefined : failureMessage,
+        };
+
+        logger.info(`Bedrock update requested: ${validatedUrl}`);
+        return reply.send(response);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao iniciar atualização';
+
+        logger.error('Error starting bedrock update:', error);
+        return reply.status(400).send({
+            success: false,
+            output: '',
+            error: message,
+        });
+    }
+});
 
 fastify.get('/logs', {
     preHandler: authenticateToken,
