@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-import { Send, Terminal, Play, Square, Save, Users } from 'lucide-react';
+import { Send, Terminal, Square, Save, Users } from 'lucide-react';
 
 export function CommandPanel() {
   const [command, setCommand] = useState('');

@@ -29,7 +29,11 @@ export function LogViewer() {
   };
 
   useEffect(() => {
-    fetchLogs();
+    const timeout = setTimeout(() => {
+      void fetchLogs();
+    }, 0);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {

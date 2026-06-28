@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ServerStatus } from '@/components/server-status';
 import { CommandPanel } from '@/components/command-panel';
 import { LogViewer } from '@/components/log-viewer';
@@ -13,8 +12,7 @@ import {
   LayoutDashboard, 
   Terminal, 
   FileText, 
-  LogOut,
-  Settings
+  LogOut
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -24,7 +22,7 @@ export default function DashboardPage() {
     try {
       await logout();
       toast.success('Logout realizado com sucesso!');
-    } catch (error) {
+    } catch {
       toast.error('Erro ao fazer logout');
     }
   };
