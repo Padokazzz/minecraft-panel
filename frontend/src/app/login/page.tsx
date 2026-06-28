@@ -31,7 +31,7 @@ export default function LoginPage() {
             }else{
                 toast.error('Falha no login. Verifique suas credenciais.');
             }
-        } catch (error) {
+        } catch {
             toast.error('Erro ao conectar com o servidor.');
         } finally {
             setIsLoading(false);
