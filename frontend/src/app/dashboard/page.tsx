@@ -3,20 +3,18 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ServerStatus } from '@/components/server-status';
-import { CommandPanel } from '@/components/command-panel';
-import { LogViewer } from '@/components/log-viewer';
+import { ServerTerminal } from '@/components/server-terminal';
 import { MinecraftIcon } from '@/components/minecraft-icon';
 import { logout } from '@/lib/auth';
 import { toast } from 'sonner';
 import { 
   LayoutDashboard, 
   Terminal, 
-  FileText, 
   LogOut
 } from 'lucide-react';
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'commands' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'terminal'>('overview');
 
   const handleLogout = async () => {
     try {
@@ -35,16 +33,10 @@ export default function DashboardPage() {
       component: <ServerStatus />
     },
     {
-      id: 'commands' as const,
-      label: 'Comandos',
+      id: 'terminal' as const,
+      label: 'Terminal',
       icon: Terminal,
-      component: <CommandPanel />
-    },
-    {
-      id: 'logs' as const,
-      label: 'Logs',
-      icon: FileText,
-      component: <LogViewer />
+      component: <ServerTerminal />
     }
   ];
 
