@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ServerStatus } from '@/components/server-status';
 import { ServerTerminal } from '@/components/server-terminal';
+import { ServerUpdate } from '@/components/server-update';
 import { MinecraftIcon } from '@/components/minecraft-icon';
 import { logout, getUserRole, hasPermission } from '@/lib/auth';
 import { toast } from 'sonner';
@@ -50,7 +51,12 @@ export default function DashboardPage() {
       id: 'overview' as const,
       label: 'Visão Geral',
       icon: LayoutDashboard,
-      component: <ServerStatus />,
+      component: (
+        <div className="space-y-6">
+          <ServerStatus />
+          {hasPermission('update') && <ServerUpdate />}
+        </div>
+      ),
       requires: 'status',
     },
     ...(hasPermission('terminal') ? [{
