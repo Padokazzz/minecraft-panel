@@ -32,5 +32,6 @@ export const hasPermission = (permission: string): boolean => {
 export const logout = async (): Promise<void> => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    document.cookie = 'auth_token=; path=/; max-age=0';
     window.location.href = '/login';
 }

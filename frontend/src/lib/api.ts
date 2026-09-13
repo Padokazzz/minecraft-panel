@@ -54,9 +54,8 @@ class ApiClient {
 
         if (result.success && result.token && typeof window !== 'undefined') {
             localStorage.setItem('token', result.token);
-            if (result.user) {
-                localStorage.setItem('user', JSON.stringify(result.user));
-            }
+            localStorage.setItem('user', JSON.stringify(result.user));
+            document.cookie = `auth_token=${result.token}; path=/; max-age=86400; SameSite=Lax`;
         }
 
         return result;
