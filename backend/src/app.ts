@@ -14,13 +14,19 @@ const fastify = Fastify({
   logger: false,
 });
 
+const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').trim();
+
 fastify.register(cors, {
-    origin: (process.env.FRONTEND_URL || 'http://localhost:3000').trim(),
+    origin: frontendUrl,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 });
 
 fastify.register(helmet, {
     contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
 });
 
 fastify.register(cookie);
@@ -50,6 +56,7 @@ const start = async () => {
         await fastify.listen({port, host: '0.0.0.0'});
 
         logger.info(`Server running on port ${port}`);
+        logger.info(`CORS origin: ${frontendUrl}`);
         logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     } catch (err) {
         logger.error('Error starting server:', err);
