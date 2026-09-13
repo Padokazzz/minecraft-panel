@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import jwt from 'jsonwebtoken';
-import { authenticateToken } from '@/middleware/auth';
+import { authenticateToken, requirePermission } from '@/middleware/auth';
 import { sshService } from '@/services/sshService';
 import { logger } from '@/utils/logger';
 import { ServerStatus, Player, CommandResult, JWTPayload } from '@/types';
@@ -146,11 +146,11 @@ async function getMinecraftStatus(): Promise<ServerStatus> {
     motd: 'Minecraft Server'
   };
 }
+
 export async function serverRoutes (fastify: FastifyInstance){
 
-    //Server status
     fastify.get('/status', {
-        preHandler: authenticateToken,
+        preHandler: requirePermission('status'),
     }, async (request: FastifyRequest, reply: FastifyReply) => {
         try {
             const serverStatus = await getMinecraftStatus();
@@ -159,158 +159,174 @@ export async function serverRoutes (fastify: FastifyInstance){
             logger.error('Error getting server status:', error);
             return reply.code(500).send({ error: 'Failed to get server status' });
         }
-    }
-)
+    })
 
-fastify.get('/status/ws', { websocket: true }, (socket, request) => {
-    try {
-        const token = request.cookies.token;
+    fastify.get('/players', {
+        preHandler: requirePermission('players'),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+            const status = await getMinecraftStatus();
+            return reply.send({
+                online: status.players.online,
+                max: status.players.max,
+                list: status.players.list,
+            });
+        } catch (error) {
+            logger.error('Error getting players:', error);
+            return reply.code(500).send({ error: 'Failed to get players' });
+        }
+    })
 
-        if (!token) {
-            socket.close(1008, 'Token nao fornecido');
+    fastify.get('/status/ws', { websocket: true }, (socket, request) => {
+        try {
+            const url = new URL(request.url, `http://${request.headers.host}`);
+            const token = url.searchParams.get('token') || request.cookies.token;
+
+            if (!token) {
+                socket.close(1008, 'Token nao fornecido');
+                return;
+            }
+
+            jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+        } catch (error) {
+            socket.close(1008, 'Token invalido');
             return;
         }
 
-        jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
-    } catch (error) {
-        socket.close(1008, 'Token invalido');
-        return;
-    }
+        let interval: NodeJS.Timeout | null = null;
 
-    let interval: NodeJS.Timeout | null = null;
+        const sendStatus = async () => {
+            try {
+                const status = await getMinecraftStatus();
 
-    const sendStatus = async () => {
-        try {
-            const status = await getMinecraftStatus();
+                if (socket.readyState === socket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'server-status',
+                        data: status,
+                    }));
+                }
+            } catch (error) {
+                logger.error('Error sending websocket status:', error);
 
-            if (socket.readyState === socket.OPEN) {
-                socket.send(JSON.stringify({
-                    type: 'server-status',
-                    data: status,
-                }));
+                if (socket.readyState === socket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Failed to get server status',
+                    }));
+                }
             }
-        } catch (error) {
-            logger.error('Error sending websocket status:', error);
-
-            if (socket.readyState === socket.OPEN) {
-                socket.send(JSON.stringify({
-                    type: 'error',
-                    message: 'Failed to get server status',
-                }));
-            }
-        }
-    };
-
-    sendStatus();
-    interval = setInterval(sendStatus, 5000);
-
-    socket.on('close', () => {
-        if (interval) {
-            clearInterval(interval);
-        }
-    });
-});
-
-fastify.post('/command', {
-    preHandler: authenticateToken
-}, async (request: FastifyRequest, reply: FastifyReply) => {
-    
-    try{
-        const { command } = request.body as { command: string };
-        
-        const sanitizedCommand = command.replace(/[;&|`$(){}[\]"]/g, '').trim();
-        
-        if (!sanitizedCommand) {
-            return reply.status(400).send({
-                error: 'Comando inválido',
-            });
-        }
-
-        const result = await sshService.executeCommand(
-            `sudo -n -u ubuntu screen -S minecraft -p 0 -X stuff "${sanitizedCommand}" && sudo -n -u ubuntu screen -S minecraft -p 0 -X stuff "$(printf '\\r')"`
-        );
-
-        const response: CommandResult = {
-            success: result.success,
-            output: result.success ? 'Comando enviado com sucesso' : 'Falha ao enviar comando',
-            error: result.error,
         };
 
-        logger.info(`Command executed: ${sanitizedCommand}`);
-      return reply.send(response);
-    } catch (error) {
-        logger.error('Error executing command:', error);
-        reply.code(500).send({ error: 'Failed to execute command' });
-    }
+        sendStatus();
+        interval = setInterval(sendStatus, 5000);
 
-    }
-)
+        socket.on('close', () => {
+            if (interval) {
+                clearInterval(interval);
+            }
+        });
+    });
 
-fastify.post('/update', {
-    preHandler: authenticateToken
-}, async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-        const { updateUrl } = request.body as { updateUrl?: string };
+    fastify.post('/command', {
+        preHandler: requirePermission('terminal')
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        
+        try{
+            const { command } = request.body as { command: string };
+            
+            const sanitizedCommand = command.replace(/[;&|`$(){}[\]"]/g, '').trim();
+            
+            if (!sanitizedCommand) {
+                return reply.status(400).send({
+                    error: 'Comando inválido',
+                });
+            }
 
-        if (!updateUrl) {
+            const result = await sshService.executeCommand(
+                `sudo -n -u ubuntu screen -S minecraft -p 0 -X stuff "${sanitizedCommand}" && sudo -n -u ubuntu screen -S minecraft -p 0 -X stuff "$(printf '\\r')"`
+            );
+
+            const response: CommandResult = {
+                success: result.success,
+                output: result.success ? 'Comando enviado com sucesso' : 'Falha ao enviar comando',
+                error: result.error,
+            };
+
+            logger.info(`Command executed by ${request.user?.username}: ${sanitizedCommand}`);
+          return reply.send(response);
+        } catch (error) {
+            logger.error('Error executing command:', error);
+            reply.code(500).send({ error: 'Failed to execute command' });
+        }
+
+    })
+
+    fastify.post('/update', {
+        preHandler: requirePermission('update')
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+            const { updateUrl } = request.body as { updateUrl?: string };
+
+            if (!updateUrl) {
+                return reply.status(400).send({
+                    success: false,
+                    output: '',
+                    error: 'Link de atualização não informado',
+                });
+            }
+
+            const validatedUrl = validateBedrockUpdateUrl(updateUrl);
+            const managerPath = getBedrockManagerPath();
+            const bashPath = getBedrockManagerBashPath();
+            const result = await sshService.executeCommand(
+                `sudo -n -u ubuntu ${shellQuote(bashPath)} ${shellQuote(managerPath)} update ${shellQuote(validatedUrl)}`
+            );
+            const failureMessage = result.error || result.output || 'Falha ao iniciar atualização';
+
+            const response: CommandResult = {
+                success: result.success,
+                output: result.output || (result.success ? 'Atualização iniciada com sucesso' : failureMessage),
+                error: result.success ? undefined : failureMessage,
+            };
+
+            logger.info(`Bedrock update requested by ${request.user?.username}: ${validatedUrl}`);
+            return reply.send(response);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Erro ao iniciar atualização';
+
+            logger.error('Error starting bedrock update:', error);
             return reply.status(400).send({
                 success: false,
                 output: '',
-                error: 'Link de atualização não informado',
+                error: message,
             });
         }
+    });
 
-        const validatedUrl = validateBedrockUpdateUrl(updateUrl);
-        const managerPath = getBedrockManagerPath();
-        const bashPath = getBedrockManagerBashPath();
-        const result = await sshService.executeCommand(
-            `sudo -n -u ubuntu ${shellQuote(bashPath)} ${shellQuote(managerPath)} update ${shellQuote(validatedUrl)}`
-        );
-        const failureMessage = result.error || result.output || 'Falha ao iniciar atualização';
-
-        const response: CommandResult = {
-            success: result.success,
-            output: result.output || (result.success ? 'Atualização iniciada com sucesso' : failureMessage),
-            error: result.success ? undefined : failureMessage,
-        };
-
-        logger.info(`Bedrock update requested: ${validatedUrl}`);
-        return reply.send(response);
-    } catch (error) {
-        const message = error instanceof Error ? error.message : 'Erro ao iniciar atualização';
-
-        logger.error('Error starting bedrock update:', error);
-        return reply.status(400).send({
-            success: false,
-            output: '',
-            error: message,
-        });
-    }
-});
-
-fastify.get('/logs', {
-    preHandler: authenticateToken,
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { lines = 50 } = request.query as { lines?: number };
-      
-      const result = await sshService.executeCommand(
-    `sudo -n -u ubuntu screen -S minecraft -p 0 -X hardcopy /tmp/mc_logs.txt && sudo -n -u ubuntu cat /tmp/mc_logs.txt | tail -n ${lines}`
-);
-      
-      if (result.success) {
-        return reply.send({
-          logs: result.output.split('\n').filter(line => line.trim()),
-        });
-      }
-      
-      return reply.status(500).send({
-        error: 'Erro ao obter logs',
-      });
-    } catch (error) {
-      logger.error('Error getting logs:', error);
-      return reply.status(500).send({
-        error: 'Erro ao obter logs',
-      });
-
-}})}
+    fastify.get('/logs', {
+        preHandler: requirePermission('logs'),
+    }, async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+            const { lines = 50 } = request.query as { lines?: number };
+            
+            const result = await sshService.executeCommand(
+                `sudo -n -u ubuntu screen -S minecraft -p 0 -X hardcopy /tmp/mc_logs.txt && sudo -n -u ubuntu cat /tmp/mc_logs.txt | tail -n ${lines}`
+            );
+            
+            if (result.success) {
+                return reply.send({
+                    logs: result.output.split('\n').filter(line => line.trim()),
+                });
+            }
+            
+            return reply.status(500).send({
+                error: 'Erro ao obter logs',
+            });
+        } catch (error) {
+            logger.error('Error getting logs:', error);
+            return reply.status(500).send({
+                error: 'Erro ao obter logs',
+            });
+        }
+    })
+}

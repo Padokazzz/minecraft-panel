@@ -54,6 +54,9 @@ class ApiClient {
 
         if (result.success && result.token && typeof window !== 'undefined') {
             localStorage.setItem('token', result.token);
+            if (result.user) {
+                localStorage.setItem('user', JSON.stringify(result.user));
+            }
         }
 
         return result;

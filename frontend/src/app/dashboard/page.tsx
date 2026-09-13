@@ -6,24 +6,35 @@ import { Button } from '@/components/ui/button';
 import { ServerStatus } from '@/components/server-status';
 import { ServerTerminal } from '@/components/server-terminal';
 import { MinecraftIcon } from '@/components/minecraft-icon';
-import { logout } from '@/lib/auth';
+import { logout, getUserRole, hasPermission } from '@/lib/auth';
 import { toast } from 'sonner';
+import { Role } from '@/types';
 import { 
   LayoutDashboard, 
   Terminal, 
-  LogOut
+  LogOut,
+  User
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'terminal'>('overview');
+  const [role, setRole] = useState<Role | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/login');
+      return;
     }
+    setRole(getUserRole());
   }, [router]);
+
+  useEffect(() => {
+    if (role && !hasPermission('terminal') && activeTab === 'terminal') {
+      setActiveTab('overview');
+    }
+  }, [role, activeTab]);
 
   const handleLogout = async () => {
     try {
@@ -39,19 +50,20 @@ export default function DashboardPage() {
       id: 'overview' as const,
       label: 'Visão Geral',
       icon: LayoutDashboard,
-      component: <ServerStatus />
+      component: <ServerStatus />,
+      requires: 'status',
     },
-    {
+    ...(hasPermission('terminal') ? [{
       id: 'terminal' as const,
       label: 'Terminal',
       icon: Terminal,
-      component: <ServerTerminal />
-    }
+      component: <ServerTerminal />,
+      requires: 'terminal',
+    }] : []),
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -67,19 +79,24 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Sair
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <User className="w-4 h-4" />
+                <span className="capitalize">{role || '...'}</span>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sair
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Navigation Tabs */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
@@ -104,7 +121,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
           {tabs.map((tab) => (

@@ -1,11 +1,11 @@
-// Tipos para o Minecraft admin Panel
+export type Role = 'admin' | 'operator';
 
 export interface ServerStatus {
     online: boolean;
     players: {
         online: number;
         max: number;
-        list: Player [];
+        list: Player[];
     };
     version: string;
     motd: string;
@@ -34,6 +34,7 @@ export interface LoginResponse {
     user?: {
         id: string;
         username: string;
+        role: Role;
     };
 }
 

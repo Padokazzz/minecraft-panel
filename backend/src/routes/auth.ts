@@ -2,29 +2,67 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { authenticateToken } from '@/middleware/auth';
-import { AuthResponse, JWTPayload } from '@/types';
+import { AuthResponse, JWTPayload, Role } from '@/types';
 import { logger } from '@/utils/logger';
-import { SignOptions } from 'jsonwebtoken';
 
+interface UserConfig {
+    id: string;
+    username: string;
+    passwordHash: string;
+    role: Role;
+}
 
+function loadUsers(): UserConfig[] {
+    const users: UserConfig[] = [];
 
-const users = [
-    {
-        id: '1',
-        username: process.env.ADMIN_USERNAME || 'admin',
-        password: process.env.ADMIN_PASSWORD_HASH || '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    // Admin principal
+    const adminUser = process.env.ADMIN_USERNAME || 'admin';
+    const adminHash = process.env.ADMIN_PASSWORD_HASH;
+    if (adminHash) {
+        users.push({
+            id: '1',
+            username: adminUser,
+            passwordHash: adminHash,
+            role: 'admin',
+        });
     }
-];
+
+    // Operador 1
+    const op1User = process.env.OPERATOR1_USERNAME;
+    const op1Hash = process.env.OPERATOR1_PASSWORD_HASH;
+    if (op1User && op1Hash) {
+        users.push({
+            id: '2',
+            username: op1User,
+            passwordHash: op1Hash,
+            role: 'operator',
+        });
+    }
+
+    // Operador 2
+    const op2User = process.env.OPERATOR2_USERNAME;
+    const op2Hash = process.env.OPERATOR2_PASSWORD_HASH;
+    if (op2User && op2Hash) {
+        users.push({
+            id: '3',
+            username: op2User,
+            passwordHash: op2Hash,
+            role: 'operator',
+        });
+    }
+
+    return users;
+}
 
 export async function authRoutes(fastify: FastifyInstance) {
 
-    //Login
     fastify.post('/login', async (request, reply) => {
         try{
             const { username, password } = request.body as { username: string; password: string };
 
+            const users = loadUsers();
             const user = users.find(u => u.username === username);
-            if (!user || !await bcrypt.compare(password, user.password)) {
+            if (!user || !await bcrypt.compare(password, user.passwordHash)) {
                 const response: AuthResponse = {
                     success: false,
                     message: 'Credenciais inválidas',
@@ -35,6 +73,7 @@ export async function authRoutes(fastify: FastifyInstance) {
             const payload: JWTPayload = {
                 userId: user.id,
                 username: user.username,
+                role: user.role,
             };
 
             const token = jwt.sign(
@@ -57,10 +96,11 @@ export async function authRoutes(fastify: FastifyInstance) {
                 user: {
                     id: user.id,
                     username: user.username,
+                    role: user.role,
                 }
             };
 
-            logger.info(`User ${user.username} logged in`);
+            logger.info(`User ${user.username} logged in (${user.role})`);
             return reply.send({ ...response, token });
         } catch (error) {
             logger.error('Login error:', error);
@@ -71,7 +111,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         }
     });
 
-    //Logout
     fastify.post('/logout', async (request: FastifyRequest, reply: FastifyReply) => {
         reply.clearCookie('token');
         return reply.send({
@@ -80,7 +119,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         });
     });
 
-    // Verify token
     fastify.get('/verify', {
         preHandler: authenticateToken,
     }, async (request: FastifyRequest, reply: FastifyReply) => {
