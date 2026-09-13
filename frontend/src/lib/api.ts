@@ -47,18 +47,13 @@ class ApiClient {
     }
 
     async login(credentials: LoginRequest): Promise<LoginResponse> {
-        const result = await this.request<LoginResponse>('/api/auth/login', {
+        const result = await this.request<LoginResponse & { token?: string }>('/api/auth/login', {
             method: 'POST',
             body: JSON.stringify(credentials),
         });
 
-        if (result.success && typeof window !== 'undefined') {
-            const cookies = document.cookie.split(';');
-            const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
-            if (tokenCookie) {
-                const tokenValue = tokenCookie.split('=')[1];
-                localStorage.setItem('token', tokenValue);
-            }
+        if (result.success && result.token && typeof window !== 'undefined') {
+            localStorage.setItem('token', result.token);
         }
 
         return result;

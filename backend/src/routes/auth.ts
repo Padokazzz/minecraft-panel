@@ -61,7 +61,7 @@ export async function authRoutes(fastify: FastifyInstance) {
             };
 
             logger.info(`User ${user.username} logged in`);
-            return reply.send(response);
+            return reply.send({ ...response, token });
         } catch (error) {
             logger.error('Login error:', error);
             return reply.status(500).send({
