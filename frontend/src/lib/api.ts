@@ -27,9 +27,12 @@ class ApiClient {
     ): Promise<T> {
         const url = `${this.baseURL}${endpoint}`;
 
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
         const response = await fetch(url, {
             headers: {
                 'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
                 ...options.headers,
             },
             credentials: 'include',
@@ -43,21 +46,33 @@ class ApiClient {
         return response.json();
     }
 
-    //Auth endpoints
     async login(credentials: LoginRequest): Promise<LoginResponse> {
-        return this.request<LoginResponse>('/api/auth/login', {
+        const result = await this.request<LoginResponse>('/api/auth/login', {
             method: 'POST',
             body: JSON.stringify(credentials),
         });
+
+        if (result.success && typeof window !== 'undefined') {
+            const cookies = document.cookie.split(';');
+            const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+            if (tokenCookie) {
+                const tokenValue = tokenCookie.split('=')[1];
+                localStorage.setItem('token', tokenValue);
+            }
+        }
+
+        return result;
     }
 
     async logout(): Promise<void> {
-        return this.request<void>('/api/auth/logout', {
+        await this.request<void>('/api/auth/logout', {
             method: 'POST',
         });
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+        }
     }
 
-    // Server endpoints
     async getServerStatus(): Promise<ServerStatus> {
         return this.request<ServerStatus>('/api/server/status');
     }

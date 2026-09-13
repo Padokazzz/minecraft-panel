@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ServerStatus } from '@/components/server-status';
 import { ServerTerminal } from '@/components/server-terminal';
@@ -15,6 +16,14 @@ import {
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'terminal'>('overview');
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+    }
+  }, [router]);
 
   const handleLogout = async () => {
     try {
