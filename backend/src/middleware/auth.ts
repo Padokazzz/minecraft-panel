@@ -2,9 +2,23 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import jwt from "jsonwebtoken";
 import { JWTPayload, Role, ROLE_PERMISSIONS } from "@/types";
 
+function extractToken(request: FastifyRequest): string | null {
+    const authHeader = request.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        return authHeader.substring(7);
+    }
+
+    const cookieToken = request.cookies.token;
+    if (cookieToken) {
+        return cookieToken;
+    }
+
+    return null;
+}
+
 export const authenticateToken = async (request: FastifyRequest, reply: FastifyReply) => {
     try{
-        const token = request.cookies.token;
+        const token = extractToken(request);
         
         if(!token){
             return reply.status(401).send({ error: 'Token não fornecido' });
@@ -21,7 +35,7 @@ export const authenticateToken = async (request: FastifyRequest, reply: FastifyR
 export const requirePermission = (permission: string) => {
     return async (request: FastifyRequest, reply: FastifyReply) => {
         try {
-            const token = request.cookies.token;
+            const token = extractToken(request);
             
             if (!token) {
                 return reply.status(401).send({ error: 'Token não fornecido' });
