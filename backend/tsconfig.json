@@ -18,7 +18,8 @@
       "@/utils/*": ["./src/utils/*"],
       "@/config/*": ["./src/config/*"]
     },
-    "types": ["node"],
+    "types": ["node", "ssh2"],
+    "typeRoots": ["./node_modules/@types"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
