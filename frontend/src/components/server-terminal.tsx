@@ -183,15 +183,15 @@ export function ServerTerminal() {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <CardHeader className="pb-3 sm:pb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Terminal className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Terminal className="w-4 h-4 sm:w-5 sm:h-5" />
               Terminal do Servidor
             </CardTitle>
-            <CardDescription>
-              Console, logs e comandos do Minecraft em uma única tela
+            <CardDescription className="text-xs sm:text-sm">
+              Console, logs e comandos do Minecraft
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -199,7 +199,7 @@ export function ServerTerminal() {
               variant="outline"
               size="sm"
               onClick={() => setAutoRefresh((value) => !value)}
-              className={autoRefresh ? 'bg-green-50 border-green-200' : ''}
+              className={`h-8 text-xs ${autoRefresh ? 'bg-green-50 border-green-200' : ''}`}
             >
               {autoRefresh ? 'Auto: ON' : 'Auto: OFF'}
             </Button>
@@ -208,36 +208,38 @@ export function ServerTerminal() {
               size="sm"
               onClick={() => void fetchLogs()}
               disabled={isLoadingLogs}
+              className="h-8 px-2"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoadingLogs ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingLogs ? 'animate-spin' : ''}`} />
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={downloadLogs}
               disabled={logs.length === 0}
+              className="h-8 px-2"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <form onSubmit={handleUpdateSubmit} className="rounded-md border border-green-200 bg-green-50 p-3">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-2 md:flex-row">
+      <CardContent className="space-y-3 sm:space-y-4">
+        <form onSubmit={handleUpdateSubmit} className="rounded-md border border-green-200 bg-green-50 p-2.5 sm:p-3">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <Input
                 value={updateUrl}
                 onChange={(event) => setUpdateUrl(event.target.value)}
-                placeholder="Cole o link .zip da atualização do Minecraft Bedrock"
+                placeholder="Cole o link .zip da atualizacao"
                 disabled={isUpdating}
-                className="bg-white"
+                className="bg-white h-10 text-sm"
               />
-              <Button type="submit" disabled={isUpdating} className="bg-green-600 hover:bg-green-700">
+              <Button type="submit" disabled={isUpdating} className="w-full h-10 bg-green-600 hover:bg-green-700 sm:w-auto">
                 {isUpdating ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <RefreshCw className="w-4 h-4 animate-spin mr-2" />
                 ) : (
-                  <UploadCloud className="w-4 h-4" />
+                  <UploadCloud className="w-4 h-4 mr-2" />
                 )}
                 Atualizar
               </Button>
@@ -245,12 +247,12 @@ export function ServerTerminal() {
 
             {updateStatus !== 'idle' && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="font-medium text-green-900">
                     {updateStatus === 'success'
-                      ? 'Atualização concluída'
+                      ? 'Atualizacao concluida'
                       : updateStatus === 'error'
-                        ? 'Atualização falhou'
+                        ? 'Atualizacao falhou'
                         : updateStages[updateStageIndex]?.label}
                   </span>
                   <span className="tabular-nums text-green-800">{updateProgress}%</span>
@@ -263,7 +265,7 @@ export function ServerTerminal() {
                     style={{ width: `${updateProgress}%` }}
                   />
                 </div>
-                <div className="grid gap-1 text-xs text-green-900 md:grid-cols-2">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-green-900">
                   {updateStages.map((stage, index) => (
                     <div key={stage.label} className="flex items-center gap-2">
                       <span
@@ -284,7 +286,7 @@ export function ServerTerminal() {
           </div>
         </form>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {quickCommands.map((quick) => {
             const Icon = quick.icon;
 
@@ -295,9 +297,9 @@ export function ServerTerminal() {
                 size="sm"
                 onClick={() => void sendCommand(quick.command)}
                 disabled={isSending}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1.5 h-8 text-xs"
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5" />
                 {quick.label}
               </Button>
             );
@@ -305,18 +307,18 @@ export function ServerTerminal() {
         </div>
 
         <div className="bg-gray-950 rounded-md border border-gray-800 overflow-hidden">
-          <div className="h-[420px] overflow-y-auto p-4 font-mono text-sm">
+          <div className="h-[250px] sm:h-[350px] md:h-[420px] overflow-y-auto p-3 sm:p-4 font-mono text-xs sm:text-sm">
             {isLoadingLogs ? (
               <div className="flex h-full items-center justify-center text-gray-400">
                 <RefreshCw className="w-5 h-5 animate-spin" />
               </div>
             ) : logs.length === 0 ? (
-              <p className="text-gray-500">Nenhum log disponível</p>
+              <p className="text-gray-500">Nenhum log disponivel</p>
             ) : (
               <div className="space-y-1">
                 {logs.map((log, index) => (
                   <div key={`${index}-${log}`} className="break-words text-gray-300">
-                    <span className="mr-2 select-none text-gray-600">$</span>
+                    <span className="mr-1.5 select-none text-gray-600">$</span>
                     {log}
                   </div>
                 ))}
@@ -325,17 +327,17 @@ export function ServerTerminal() {
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="border-t border-gray-800 bg-gray-900 p-3">
+          <form onSubmit={handleSubmit} className="border-t border-gray-800 bg-gray-900 p-2.5 sm:p-3">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-sm text-green-400">&gt;</span>
+              <span className="font-mono text-xs sm:text-sm text-green-400">&gt;</span>
               <Input
                 value={command}
                 onChange={(event) => setCommand(event.target.value)}
                 placeholder="Digite um comando"
                 disabled={isSending}
-                className="h-10 flex-1 border-gray-700 bg-gray-950 font-mono text-gray-100 placeholder:text-gray-500"
+                className="h-9 sm:h-10 flex-1 border-gray-700 bg-gray-950 font-mono text-xs sm:text-sm text-gray-100 placeholder:text-gray-500"
               />
-              <Button type="submit" disabled={isSending} className="bg-green-600 hover:bg-green-700">
+              <Button type="submit" disabled={isSending} className="h-9 w-9 sm:h-10 sm:w-10 bg-green-600 hover:bg-green-700 flex-shrink-0">
                 {isSending ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
                 ) : (
@@ -347,13 +349,14 @@ export function ServerTerminal() {
         </div>
 
         {commandHistory.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {commandHistory.map((historyCommand) => (
               <Button
                 key={historyCommand}
                 variant="secondary"
                 size="sm"
                 onClick={() => setCommand(historyCommand)}
+                className="h-7 text-xs"
               >
                 {historyCommand}
               </Button>

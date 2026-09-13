@@ -49,10 +49,10 @@ export default function DashboardPage() {
   const tabs = [
     {
       id: 'overview' as const,
-      label: 'Visão Geral',
+      label: 'Visao Geral',
       icon: LayoutDashboard,
       component: (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <ServerStatus />
           {hasPermission('update') && <ServerUpdate />}
         </div>
@@ -70,49 +70,50 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <MinecraftIcon className="w-8 h-8" />
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <MinecraftIcon className="w-7 h-7 sm:w-8 sm:h-8" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  Minecraft Admin Panel
+                <h1 className="text-base sm:text-xl font-bold text-gray-900">
+                  Minecraft Panel
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">
                   Painel de Controle do Servidor Bedrock
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
                 <User className="w-4 h-4" />
                 <span className="capitalize">{role || '...'}</span>
               </div>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={handleLogout}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 sm:gap-2"
               >
                 <LogOut className="w-4 h-4" />
-                Sair
+                <span className="hidden sm:inline">Sair</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
+      <div className="bg-white border-b border-gray-200 sticky top-14 sm:top-16 z-10">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <nav className="flex space-x-4 sm:space-x-8 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  className={`flex items-center gap-1.5 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'border-green-500 text-green-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -127,8 +128,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
+        <div className="space-y-4 sm:space-y-6">
           {tabs.map((tab) => (
             <div
               key={tab.id}
