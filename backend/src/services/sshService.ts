@@ -1,8 +1,6 @@
 import { Client } from 'ssh2';
-import fs from 'fs';
-import path from 'path';
 import { logger } from '../utils/logger';
-import { SSHConfig, CommandResult } from '../types';
+import { CommandResult } from '../types';
 
 
 class SSHService {
@@ -17,13 +15,17 @@ class SSHService {
                 return;
             }
 
-            const keyPath = path.resolve(process.env.SSH_KEY_PATH!);
-            
-            if (!fs.existsSync(keyPath)) {
-                throw new Error(`SSH key file not found: ${keyPath}`);
+            const privateKey = process.env.SSH_KEY;
+            if (!privateKey) {
+                throw new Error('SSH_KEY environment variable is not set');
             }
 
-            const keyContent = fs.readFileSync(keyPath, 'utf8');
+            const host = process.env.VPS_IP;
+            const username = process.env.SSH_USER;
+
+            if (!host || !username) {
+                throw new Error('VPS_IP or SSH_USER environment variable is not set');
+            }
 
             return new Promise((resolve, reject) => {
                 this.ssh = new Client();
@@ -40,10 +42,10 @@ class SSHService {
                 });
 
                 this.ssh.connect({
-                    host: process.env.VPS_IP!,
+                    host,
                     port: 22,
-                    username: process.env.SSH_USER!,
-                    privateKey: keyContent,
+                    username,
+                    privateKey,
                     readyTimeout: 30000,
                 });
             });

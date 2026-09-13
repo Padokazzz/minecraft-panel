@@ -1,11 +1,5 @@
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
-
-// Carregar .env da raiz do projeto
-dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
@@ -16,10 +10,8 @@ import { serverRoutes } from '@/routes/server';
 import { connectSSH } from '@/services/sshService';
 import { logger } from '@/utils/logger';
 
-
-
 const fastify = Fastify({
-  logger: false, // Usaremos nosso próprio logger
+  logger: false,
 });
 
 fastify.register(cors, {
@@ -48,8 +40,11 @@ fastify.get('/health', async () => {
 
 const start = async () => {
     try{
-        await connectSSH();
-        logger.info('SSH connection established');
+        try {
+            await connectSSH();
+        } catch (sshError) {
+            logger.warn('SSH connection failed - server commands will be unavailable');
+        }
 
         const port = parseInt(process.env.PORT || '3001');
         await fastify.listen({port, host: '0.0.0.0'});
